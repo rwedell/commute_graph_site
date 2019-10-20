@@ -8,6 +8,7 @@ import pandas as pd
 df = pd.read_csv('https://raw.githubusercontent.com/rwedell/data/master/commute_data_stacked_v2.csv')
 
 app = dash.Dash()
+server = app.server
 
 app.title = "Commuter Graph"
 
