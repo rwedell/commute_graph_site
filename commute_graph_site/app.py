@@ -18,7 +18,7 @@ for state in df['State'].unique():
     state_options.append({'label':str(state),'value':state})
 
 markdown_text ="""
-# Thanks for stopping by.
+# Thanks for stopping by
 Use the dropdown, or better yet just start typing your favorite state in the box to find out how commuters get to work in different states.
 
 This visual is built using Plotly and Dash and written in Python. Here's the [code](https://github.com/rwedell/commute_graph).
