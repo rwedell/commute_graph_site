@@ -5,58 +5,97 @@ from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 import pandas as pd
 
-df = pd.read_csv('https://raw.githubusercontent.com/rwedell/data/master/commute_data_stacked_v2.csv')
-
 app = dash.Dash()
 server = app.server
+app.title = "Commute Visual"
 
-app.title = "Commuter Graph"
+#import data
+df_pie_chart = pd.read_csv('https://raw.githubusercontent.com/rwedell/data/master/commute_data_stacked_v2.csv')
+df_map = pd.read_csv('https://raw.githubusercontent.com/rwedell/data/master/commute_data.csv')
 
-#creating a dictionary of values for the state dropdown
-state_options = []
-for state in df['State'].unique():
-    state_options.append({'label':str(state),'value':state})
+
 
 markdown_text ="""
-# Thanks for stopping by
-Use the dropdown, or better yet just start typing your favorite state in the box to find out how commuters get to work in different states.
-
-This visual is built using Plotly and Dash and written in Python. Here's the [code](https://github.com/rwedell/commute_graph).
-
-Follow this [link](https://rwedell.github.io/medianIncomeMap/) to see a map I made using JavaScript and Leflet. Here's the [repo](https://github.com/rwedell/rwedell.github.io/tree/master/medianIncomeMap).
+# Commuting to Work
+The visuals below display how people commute to work by state.
+Use the dropdowns or type in the box to search by state or commute type.
 """
 
+#creating a dictionary of values for state and commute options
+state_options = []
+for state in df_pie_chart['State'].unique():
+    state_options.append({'label':str(state),'value':state})
+    
+commute_options = [{'label':'Drive Alone','value':'Drive Alone'},
+                   {'label':'Carpool','value':'Carpool'},
+                   {'label':'Walk','value':'Walk'},
+                   {'label':'Public Transportation','value':'Public Transportation'},
+                   {'label':'Other Means','value':'Other Means'},
+                   {'label':'Work at Home','value':'Work at Home'}]
+
 app.layout = html.Div([
-    dcc.Markdown(children = markdown_text),
-    html.Div([
+    dcc.Markdown(children = markdown_text),    
+    #create divs for pie chart and map figures
+    html.Div([#pie chart div
         dcc.Dropdown(id = 'state-picker', 
                      options = state_options,
-                     value='New York',
+                     value='District of Columbia',
                      style = {'width':'50%'}),
-        dcc.Graph(id='graph')        
-    ])
-    
+        dcc.Graph(id='pie_graph')        
+    ],style={'width': '49%', 'display': 'inline-block'}),
+    html.Div([#map div
+        dcc.Dropdown(id = 'commute-picker', 
+                     options = commute_options,
+                     value='Drive Alone',
+                     style = {'width':'50%'}),
+        dcc.Graph(id='map_graph')        
+    ],style={'width': '49%', 'display': 'inline-block'})
     
 ])
 
-@app.callback(Output('graph', 'figure'),
+#callback for updating pie chart
+@app.callback(Output('pie_graph', 'figure'),
               [Input('state-picker', 'value')])
-def update_figure(selected_state):
-    filtered_df = df[df['State'] == selected_state]
+def updatePieChart(selected_state):
+    filtered_df = df_pie_chart[df_pie_chart['State'] == selected_state]
     trace = []
-    trace.append(go.Bar(
-        x = filtered_df['Commute Type'],
-        y = filtered_df['Rate']
+    trace.append(go.Pie(
+        labels = filtered_df['Commute Type'],
+        values = filtered_df['Rate'],
+        hoverinfo = 'value+label',
+        hole = 0.25
         )
     )
     return {'data': trace,
             'layout':go.Layout(
                 xaxis = {'title': selected_state},
-                yaxis = {'title': "Percent of Commuters", 'showgrid':False},
+                yaxis = {'title': "Percent of Commuters"},
                 hovermode = "closest",
                 title = "Commute Method by Percent in " + selected_state
                 )
            }
+
+#callback for updating map
+@app.callback(Output('map_graph', 'figure'),
+              [Input('commute-picker', 'value')])
+def updateMap(selected_commute):
+    trace = []
+    trace.append(go.Choropleth(
+        locations = df_map['Code'], 
+        z = df_map[selected_commute], 
+        locationmode = 'USA-states', 
+        colorscale = 'Reds',
+        colorbar_title = "Percent",
+        hovertemplate = df_map['Code']+': %{z}%<extra></extra>'
+        )
+    )
+    return {'data': trace,
+            'layout':go.Layout(
+                title_text = selected_commute + ': Percent of Commuters',
+                geo_scope='usa'
+                )
+           }
+
 
 if __name__ == '__main__':
     app.run_server()
